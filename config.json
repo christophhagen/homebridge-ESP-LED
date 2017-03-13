@@ -1,0 +1,26 @@
+
+{
+    "bridge": {
+        "name": "Homebridge",
+        "username": "CF:22:07:91:EA:30",
+        "port": 51826,
+        "pin": "392-29-104"
+    },
+
+    "description": "Connects devices to HomeKit",
+
+    "accessories": [
+        {
+            "accessory": "ESP-HSV",
+            "name": "Light",
+            "host": "192.168.188.27",
+            "udpPort": 8000,
+
+            "status": "status",
+            "hue": "hue",
+            "saturation": "saturation",
+            "brightness": "brightness"
+
+        }
+    ]
+}
