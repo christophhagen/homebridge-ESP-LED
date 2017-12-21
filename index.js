@@ -10,7 +10,7 @@ var udp = require('./udp');
 module.exports = function(homebridge){
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
-    homebridge.registerAccessory('Homebridge-ESP', 'ESP-HSV', ESP_HSV);
+    homebridge.registerAccessory('Homebridge-ESP', 'ESP-LED', ESP_LED);
 };
 
 /**
@@ -21,33 +21,25 @@ module.exports = function(homebridge){
  * @param {function} log Logging function
  * @param {object} config Your configuration object
  */
-function ESP_HSV(log, config) {
+function ESP_LED(log, config) {
 
     // The logging function is required if you want your function to output
     // any information to the console in a controlled and organized manner.
     this.log = log;
 
-    this.service    = 'HSV LED Strip';
+    this.service    = 'ESP LED Strip';
     this.name       = config.name;
 
     // UDP setup
     this.udpPort    = config.udpPort;
     this.host       = config.host;
-
-    // Handle the basic on/off
-    this.status     = config.status;
-
-    // Handle colors
-    this.hue        = config.hue;
-    this.saturation = config.saturation;
-    this.brightness = config.brightness;
 }
 
 /**
 *
 * @augments ESP_RGB
 */
-ESP_HSV.prototype = {
+ESP_LED.prototype = {
 
     /** Required Functions **/
     identify: function(callback) {
@@ -73,7 +65,7 @@ ESP_HSV.prototype = {
         .on('get', this.getPowerState.bind(this))
         .on('set', this.setPowerState.bind(this));
 
-        // Handle HSB
+        // Handle HSV color components
         lightbulbService
         .addCharacteristic(new Characteristic.Hue())
         .on('get', this.getHue.bind(this))
@@ -100,7 +92,7 @@ ESP_HSV.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getPowerState: function(callback) {
-        var url = "http://" + this.host + "/set/" + this.status;
+        var url = "http://" + this.host + "/get?c=e";
         this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 callback(error);
@@ -117,7 +109,7 @@ ESP_HSV.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setPowerState: function(state, callback) {
-        var payload = state ? "FF" : "00";
+        var payload = this._decToHex(this.id) + (state ? "FF" : "00");
         udp(this.host, this.udpPort, payload, function (err) {
             callback(err);
         });
@@ -129,7 +121,7 @@ ESP_HSV.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getBrightness: function(callback) {
-        this._getParam(this.brightness, 100/255, callback);
+        this._getParam("v", 100/255, callback);
     },
 
     /**
@@ -139,7 +131,7 @@ ESP_HSV.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setBrightness: function(level, callback) {
-        this._setParam(3, level, 2.55, callback);
+        this._setParam(3, level, 255/100, callback);
     },
 
     /**
@@ -148,7 +140,7 @@ ESP_HSV.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getHue: function(callback) {
-        this._getParam(this.hue, 360/255, callback);
+        this._getParam("h", 360/255, callback);
     },
 
     /**
@@ -167,7 +159,7 @@ ESP_HSV.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getSaturation: function(callback) {
-        this._getParam(this.saturation, 100/255, callback);
+        this._getParam("s", 100/255, callback);
     },
 
     /**
@@ -212,7 +204,7 @@ ESP_HSV.prototype = {
     * @param  {function} callback    The callback function
     */
     _getParam: function(urlParam, scale, callback) {
-        var url = "http://" + this.host + "/get/" + urlParam;
+        var url = "http://" + this.host + "/get?d=" + this.name + "?c=" + urlParam;
         this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 callback(error);
@@ -234,7 +226,7 @@ ESP_HSV.prototype = {
     */
     _setParam: function(type, value, scale, callback) {
         var scaled = Math.round(value * scale);
-        var payload = this._decToHex(type) + this._decToHex(scaled);
+        var payload = this._decToHex(this.id) + this._decToHex(type) + this._decToHex(scaled);
         udp(this.host, this.udpPort, payload, function (err) {
             callback(err);
         });

@@ -11,15 +11,12 @@
 
     "accessories": [
         {
-            "accessory": "ESP-HSV",
+            "accessory": "ESP-LED",
             "name": "Light",
+            "id": 0,
             "host": "192.168.188.27",
             "udpPort": 8000,
 
-            "status": "status",
-            "hue": "hue",
-            "saturation": "saturation",
-            "brightness": "brightness"
         }
     ]
 }

@@ -1,7 +1,7 @@
 {
-  "name": "homebridge-better-http-rgb",
+  "name": "homebridge-esp-led",
   "version": "1.0.0",
-  "description": "Homebridge plugin to control a web-based RGB device.",
+  "description": "Homebridge plugin to control LEDs on an ESP8266.",
   "license": "ISC",
   "keywords": [
     "homebridge-plugin"
@@ -11,17 +11,17 @@
     "homebridge": ">=0.2.0"
   },
   "author": {
-    "name": "Justin J. Novack",
-    "email": "jnovack@gmail.com"
+    "name": "Christoph Hagen",
+    "email": "christoph.hagen@me.com"
   },
   "contributors": [
     {
-      "name": "Adrian Rudman"
+      "name": "Christoph Hagen"
     }
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/jnovack/homebridge-better-http-rgb.git"
+    "url": "git://github.com/christophhagen/homebridge-ESP-LED.git"
   },
   "scripts": {
     "lint": "grunt lint",
