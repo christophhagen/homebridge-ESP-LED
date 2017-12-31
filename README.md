@@ -17,11 +17,13 @@ This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to cont
 
 3. Install `homebridge` on your server. A guide can be found on the [project homepage](https://github.com/nfarina/homebridge)
 
-4. Download this repository and copy the files to your `node_modules` directory. For me that's `/usr/lib/node_modules`
+4. Download this repository and copy the files to a separate folder `homebridge-ESP-LED` in your `node_modules` directory. For me that's `/usr/lib/node_modules`
 
-5. Add your configuration to the `config.json`. An example is included as `config-sample.json`. make sure that the `name` and `id` of the devices you want to control match your ESP8266-LED configuration (be sure to check port and ip as well!).
+5. Run `npm install` in the `node_modules` directory to download the dependencies.
 
-6. Optionally: Configure homebridge to [run on system startup](https://github.com/nfarina/homebridge/wiki/Homebridge-autostart-at-boot-(init.d%29-on-Ubuntu-(linux%29) for convenience
+6. Add your configuration to the `config.json`. An example is included as `config-sample.json`. Make sure that the `id` and `ip` of the device you want to control matches your ESP8266-LED configuration.
+
+7. Optionally: Configure homebridge to [run on system startup](https://github.com/nfarina/homebridge/wiki/Homebridge-autostart-at-boot-(init.d%29-on-Ubuntu-(linux%29) for convenience
 
 7. Set up the HomeKit device on your iOS device. It should be automatically discovered if you are on the same network.
 

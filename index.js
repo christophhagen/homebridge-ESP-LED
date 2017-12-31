@@ -1,6 +1,6 @@
 var Service, Characteristic;
 var request = require('request');
-var udp = require('./udp');
+var dgram = require('dgram');
 
 /**
  * @module homebridge
@@ -33,6 +33,10 @@ function ESP_LED(log, config) {
     // UDP setup
     this.udpPort    = config.udpPort;
     this.host       = config.host;
+    this.id         = config.id;
+
+    this.baseURLget = "http://" + this.host + "/get?d=" + this.id + "&c=";
+    this.baseURLset = "http://" + this.host + "/set?d=" + this.id + "&c=";
 }
 
 /**
@@ -57,7 +61,7 @@ ESP_LED.prototype = {
         .setCharacteristic(Characteristic.Model, 'ESP8266')
         .setCharacteristic(Characteristic.SerialNumber, 'Homebridge');
 
-        this.log('creating Lightbulb');
+        this.log('Creating Lightbulb');
         var lightbulbService = new Service.Lightbulb(this.name);
 
         lightbulbService
@@ -81,6 +85,7 @@ ESP_LED.prototype = {
         .on('get', this.getBrightness.bind(this))
         .on('set', this.setBrightness.bind(this));
 
+        this.log('Finished getting services')
         return [lightbulbService];
     },
 
@@ -92,7 +97,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getPowerState: function(callback) {
-        var url = "http://" + this.host + "/get?c=e";
+        var url = this.baseURLget + 'e';
         this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 callback(error);
@@ -109,10 +114,25 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setPowerState: function(state, callback) {
-        var payload = this._decToHex(this.id) + (state ? "FF" : "00");
-        udp(this.host, this.udpPort, payload, function (err) {
-            callback(err);
-        });
+
+        var url = this.baseURLset + (state ? "e" : "o");
+
+        this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
+            if (error) {
+                callback(error);
+            } else {
+                if (responseBody != 'ok') {
+                    this.log("Unexpected response: " + responseBody);
+                }
+                callback(null);
+            }
+        }.bind(this));
+
+        // Set the State via UDP
+        // var payload = this._decToHex(this.id) + (state ? "FF" : "00");
+        // this._sendUDP(payload, function (err) {
+        //     callback(err);
+        // });
     },
 
     /**
@@ -121,7 +141,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getBrightness: function(callback) {
-        this._getParam("v", 100/255, callback);
+        this._getParam('v', 100/255, callback);
     },
 
     /**
@@ -131,7 +151,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setBrightness: function(level, callback) {
-        this._setParam(3, level, 255/100, callback);
+        this._setParamHTTP('v', level, 255/100, callback);
     },
 
     /**
@@ -140,7 +160,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getHue: function(callback) {
-        this._getParam("h", 360/255, callback);
+        this._getParam('h', 360/255, callback);
     },
 
     /**
@@ -150,7 +170,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setHue: function(level, callback) {
-        this._setParam(1, level, 255/360, callback);
+        this._setParamHTTP('h', level, 255/360, callback);
     },
 
     /**
@@ -159,7 +179,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     getSaturation: function(callback) {
-        this._getParam("s", 100/255, callback);
+        this._getParam('s', 100/255, callback);
     },
 
     /**
@@ -169,7 +189,7 @@ ESP_LED.prototype = {
      * @param {function} callback The callback that handles the response.
      */
     setSaturation: function(level, callback) {
-        this._setParam(2, level, 2.55, callback);
+        this._setParamHTTP('s', level, 2.55, callback);
     },
 
     /** Utility Functions **/
@@ -204,7 +224,7 @@ ESP_LED.prototype = {
     * @param  {function} callback    The callback function
     */
     _getParam: function(urlParam, scale, callback) {
-        var url = "http://" + this.host + "/get?d=" + this.name + "?c=" + urlParam;
+        var url = this.baseURLget + urlParam;
         this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
             if (error) {
                 callback(error);
@@ -213,7 +233,32 @@ ESP_LED.prototype = {
                 callback(null, Math.round(value * scale));
             }
         }.bind(this));
-    }
+    },
+
+    /**
+    * Sets a value
+    * from the device (0-255), and scales it with the given scale.
+    *
+    * @param  {String}   urlParam    The parameter type ('h': hue, 's': saturation, 'v': brightness)
+    * @param  {Number}   value       The value of the parameter
+    * @param  {Number}   scale       The scaling factor
+    * @param  {function} callback    The callback function
+    */
+    _setParamHTTP: function(urlParam, value, scale, callback) {
+        var scaled = Math.round(value * scale);
+        var url = this.baseURLset + urlParam + '&v=' + this._decToHex(scaled);
+
+        this._httpRequest(url, '', 'GET', function(error, response, responseBody) {
+            if (error) {
+                callback(error);
+            } else {
+                if (responseBody != 'ok') {
+                    this.log("Unexpected response: " + responseBody);
+                }
+                callback(null);
+            }
+        }.bind(this));
+    },
 
     /**
     * Sets a value
@@ -224,13 +269,13 @@ ESP_LED.prototype = {
     * @param  {Number}   scale       The scaling factor
     * @param  {function} callback    The callback function
     */
-    _setParam: function(type, value, scale, callback) {
+    _setParamUDP: function(type, value, scale, callback) {
         var scaled = Math.round(value * scale);
         var payload = this._decToHex(this.id) + this._decToHex(type) + this._decToHex(scaled);
-        udp(this.host, this.udpPort, payload, function (err) {
+        this._sendUDP(payload, function (err) {
             callback(err);
         });
-    }
+    },
 
     /**
      * Converts a decimal number into a hexidecimal string
@@ -244,6 +289,27 @@ ESP_LED.prototype = {
             hex = '0' + hex;
         }
         return hex;
+    },
+
+    /**
+     * Sends a payload via UDP to the device.
+     *
+     * @param   {String}   payload  The data as a hexadecimal string
+     * @param  {function} callback  The callback function for errors
+     */
+    _sendUDP: function (payload, callback) {
+        var message = new Buffer(payload, 'hex');
+
+        var client = dgram.createSocket('udp4');
+
+        setTimeout(function() {
+            client.send(message, 0, message.length, this.udpPort, this.host, function(err, bytes) {
+                if (err) throw err;
+                client.close();
+
+                callback(err);
+            });
+        }, 50);
     },
 
 };
