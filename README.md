@@ -23,7 +23,7 @@ This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to cont
 
 6. Add your configuration to the `config.json`. An example is included as `config-sample.json`. Make sure that the `id` and `ip` of the device you want to control matches your ESP8266-LED configuration.
 
-7. Optionally: Configure homebridge to [run on system startup](https://github.com/nfarina/homebridge/wiki/Homebridge-autostart-at-boot-(init.d%29-on-Ubuntu-(linux%29) for convenience
+7. Optionally: Configure homebridge to [run on system startup](https://github.com/nfarina/homebridge/wiki/Homebridge-autostart-at-boot-\(init.d%29-on-Ubuntu-\(linux%29) for convenience
 
 7. Set up the HomeKit device on your iOS device. It should be automatically discovered if you are on the same network.
 
